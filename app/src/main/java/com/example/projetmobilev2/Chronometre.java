@@ -15,11 +15,15 @@ import android.widget.Chronometer;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -35,8 +39,9 @@ public class Chronometre extends AppCompatActivity {
     private FloatingActionButton addBtn, viewBtn;
     private Chronometer chronometer;
     private boolean running;
-    private float longitude;
-    private float latitude;
+    private double previousLatitude = 0.0;
+    private double previousLongitude = 0.0;
+
     private static final int REQUEST_CODE = 100;
     private static final int LOCATION_UPDATE_DELAY = 15000; // 15 seconds
 
@@ -44,7 +49,9 @@ public class Chronometre extends AppCompatActivity {
 
     private Handler locationHandler;
     private Runnable locationRunnable;
-    private int timerSeconds = 0;
+    private LocationCallback locationCallback;
+
+    private boolean manualLocationUpdate = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,8 +87,8 @@ public class Chronometre extends AppCompatActivity {
         addBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                manualLocationUpdate = true;
                 getLastLocation();
-                Log.d("essie", String.valueOf(longitude));
             }
         });
 
@@ -90,15 +97,52 @@ public class Chronometre extends AppCompatActivity {
         locationRunnable = new Runnable() {
             @Override
             public void run() {
-                getLastLocation();
+                if (!manualLocationUpdate) {
+                    getLastLocation();
+                }
                 scheduleLocationUpdates(); // Planifier la prochaine mise à jour de localisation
             }
         };
+
+        startLocationUpdates();
         scheduleLocationUpdates();
     }
 
+    private void startLocationUpdates() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            LocationRequest locationRequest = LocationRequest.create();
+            locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+            locationRequest.setInterval(LOCATION_UPDATE_DELAY);
+
+            LocationCallback locationCallback = new LocationCallback() {
+                @Override
+                public void onLocationResult(LocationResult locationResult) {
+                    if (locationResult != null) {
+                        Location location = locationResult.getLastLocation();
+                        if (location != null && !manualLocationUpdate) {
+                            updateLocation(location);
+                        }
+                    }
+                }
+            };
+
+            fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, null);
+        }
+    }
+    private int getSecondsFromTimerText(String timerText) {
+        String[] timeParts = timerText.split(":");
+        if (timeParts.length == 2) {
+            int minutes = Integer.parseInt(timeParts[0].trim());
+            int seconds = Integer.parseInt(timeParts[1].trim());
+            return minutes * 60 + seconds;
+        } else {
+            // Gérer le cas où le format du temps est incorrect
+            return 0;
+        }
+    }
+
     private void scheduleLocationUpdates() {
-        locationHandler.postDelayed(locationRunnable, LOCATION_UPDATE_DELAY); // Mettre à jour toutes les 1 seconde
+        locationHandler.postDelayed(locationRunnable, LOCATION_UPDATE_DELAY); // Planifier la prochaine mise à jour de localisation
     }
 
     private void getLastLocation() {
@@ -107,21 +151,7 @@ public class Chronometre extends AppCompatActivity {
                 @Override
                 public void onSuccess(Location location) {
                     if (location != null) {
-                        Geocoder geocoder = new Geocoder(Chronometre.this, Locale.getDefault());
-                        List<Address> addresses = null;
-                        try {
-                            addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                        float latitude = (float) addresses.get(0).getLatitude();
-                        float longitude = (float) addresses.get(0).getLongitude();
-
-                        // Ajouter les données d'altitude et de longitude à la base de données
-                        MyDataBaseHelper MDB = new MyDataBaseHelper(Chronometre.this);
-                        MDB.AddTrajet(getIntent().getStringExtra("trajet_nom"), latitude, longitude);
-
-                        Toast.makeText(Chronometre.this, "Longitude: " + longitude + ", Latitude: " + latitude, Toast.LENGTH_LONG).show();
+                        updateLocation(location);
                     }
                 }
             });
@@ -129,6 +159,34 @@ public class Chronometre extends AppCompatActivity {
             // Demander la permission d'accéder à la localisation si elle n'est pas encore accordée
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_CODE);
             Toast.makeText(this, "Permission non accordée", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void updateLocation(Location location) {
+        double latitude = location.getLatitude();
+        double longitude = location.getLongitude();
+
+        if (manualLocationUpdate) {
+            // Ajouter les données de latitude et de longitude à la base de données pour la localisation manuelle
+            MyDataBaseHelper MDB = new MyDataBaseHelper(Chronometre.this);
+            MDB.AddTrajet(getIntent().getStringExtra("trajet_nom"), (float) latitude, (float) longitude);
+
+            Toast.makeText(Chronometre.this, "Latitude: " + latitude + ", Longitude: " + longitude, Toast.LENGTH_LONG).show();
+
+            manualLocationUpdate = false; // Réinitialiser le drapeau de mise à jour manuelle de la localisation
+        } else {
+            // Vérifier si la position est différente de la précédente
+            if (latitude != previousLatitude || longitude != previousLongitude) {
+                // Ajouter les données de latitude et de longitude à la base de données
+                MyDataBaseHelper MDB = new MyDataBaseHelper(Chronometre.this);
+                MDB.AddTrajet(getIntent().getStringExtra("trajet_nom"), (float) latitude, (float) longitude);
+
+                Toast.makeText(Chronometre.this, "Latitude: " + latitude + ", Longitude: " + longitude, Toast.LENGTH_LONG).show();
+
+                // Mettre à jour les coordonnées précédentes
+                previousLatitude = latitude;
+                previousLongitude = longitude;
+            }
         }
     }
 
@@ -143,31 +201,39 @@ public class Chronometre extends AppCompatActivity {
                 if (timeParts.length == 2) {
                     minutes = Integer.parseInt(timeParts[0].trim());
                     seconds = Integer.parseInt(timeParts[1].trim());
-                } else {
-                    // Afficher un message d'erreur si le format du temps est incorrect
-                    Toast.makeText(this, "Format du temps incorrect", Toast.LENGTH_SHORT).show();
                 }
             }
 
-            timerSeconds = minutes * 60 + seconds;
-            chronometer.setBase(SystemClock.elapsedRealtime() - (timerSeconds * 1000));
+            chronometer.setBase(SystemClock.elapsedRealtime() - (minutes * 60000 + seconds * 1000));
             chronometer.start();
             running = true;
         }
     }
 
-
     public void FinirLeTrajet() {
         chronometer.stop();
-        timerSeconds = 0;
         running = false;
-        locationHandler.removeCallbacks(locationRunnable);
+        timerTxt.setText("00:00");
+        locationHandler.removeCallbacks(locationRunnable); // Arrêter la planification des mises à jour de localisation
+        fusedLocationProviderClient.removeLocationUpdates(locationCallback); // Arrêter les mises à jour de localisation
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // Arrêter les mises à jour de localisation différées lorsque l'activité est détruite
-        locationHandler.removeCallbacks(locationRunnable);
+        locationHandler.removeCallbacks(locationRunnable); // Arrêter la planification des mises à jour de localisation
+        fusedLocationProviderClient.removeLocationUpdates(locationCallback); // Arrêter les mises à jour de localisation
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                getLastLocation();
+            } else {
+                Toast.makeText(this, "Permission non accordée", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 }
