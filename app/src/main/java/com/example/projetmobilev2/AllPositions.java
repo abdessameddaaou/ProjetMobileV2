@@ -35,6 +35,8 @@ public class AllPositions extends AppCompatActivity {
 
     RecyclerView recyclerView;
     FloatingActionButton floatingactionbutton;
+
+    FloatingActionButton firebaseBtn;
     TrajetAdapter adapter;
 
     MyDataBaseHelper myDB;
@@ -59,7 +61,14 @@ public class AllPositions extends AppCompatActivity {
         recyclerView.setAdapter(adapter);
         recyclerView.setLayoutManager(new LinearLayoutManager(AllPositions.this));
         floatingactionbutton = findViewById(R.id.Export);
+        firebaseBtn = findViewById(R.id.firebase_btn);
 
+        // on clik sur le button firebase
+
+        firebaseBtn.setOnClickListener(view -> {
+            Intent intent = new Intent(AllPositions.this,TrajetFirebase.class);
+            startActivity(intent);
+        });
         floatingactionbutton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {

@@ -15,16 +15,25 @@ import android.widget.Chronometer;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.firebase.Timestamp;
+import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -45,6 +54,7 @@ public class Chronometre extends AppCompatActivity {
     private Handler locationHandler;
     private Runnable locationRunnable;
     private int timerSeconds = 0;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -121,6 +131,14 @@ public class Chronometre extends AppCompatActivity {
                         MyDataBaseHelper MDB = new MyDataBaseHelper(Chronometre.this);
                         MDB.AddTrajet(getIntent().getStringExtra("trajet_nom"), latitude, longitude);
 
+                        // Récupérer l'id du trajet envoyé par Main Activity
+
+                        String trajetId = getIntent().getStringExtra("trajet_id");
+                        Localisation localisation = new Localisation();
+                        localisation.setCoordX(latitude);
+                        localisation.setCoordY(longitude);
+
+                        saveLocalisationInFireBase(trajetId,localisation);
                         Toast.makeText(Chronometre.this, "Longitude: " + longitude + ", Latitude: " + latitude, Toast.LENGTH_LONG).show();
                     }
                 }
@@ -131,6 +149,52 @@ public class Chronometre extends AppCompatActivity {
             Toast.makeText(this, "Permission non accordée", Toast.LENGTH_SHORT).show();
         }
     }
+
+    public void saveLocalisationInFireBase(String trajetID, Localisation localisation) {
+        DocumentReference trajetRef = FirebaseFirestore.getInstance().collection("trajets").document(trajetID);
+
+        trajetRef.get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                    @Override
+                    public void onSuccess(DocumentSnapshot documentSnapshot) {
+                        if (documentSnapshot.exists()) {
+                            TrajetBase trajet = documentSnapshot.toObject(TrajetBase.class);
+                            List<Localisation> localisations = trajet.getListeLocalisations();
+
+                            if (localisations == null) {
+                                localisations = new ArrayList<>();
+                            }
+
+                            localisations.add(localisation);
+                            trajet.setListeLocalisations(localisations);
+
+                            trajetRef.set(trajet)
+                                    .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                        @Override
+                                        public void onSuccess(Void unused) {
+                                            Toast.makeText(Chronometre.this, "Localisation ajoutée avec succès", Toast.LENGTH_SHORT).show();
+                                        }
+                                    })
+                                    .addOnFailureListener(new OnFailureListener() {
+                                        @Override
+                                        public void onFailure(@NonNull Exception e) {
+                                            Log.d("Err", e.getMessage());
+                                            Toast.makeText(Chronometre.this, "Erreur lors de l'ajout de la localisation : " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                                        }
+                                    });
+                        } else {
+                            Toast.makeText(Chronometre.this, "Trajet non trouvé", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.d("Err", e.getMessage());
+                        Toast.makeText(Chronometre.this, "Erreur lors de la récupération du trajet : " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
 
     public void startChronometer() {
         if (!running) {
