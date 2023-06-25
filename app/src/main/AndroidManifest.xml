@@ -17,9 +17,12 @@
         android:theme="@style/Theme.ProjetMobileV2"
         tools:targetApi="31">
         <activity
-            android:name=".TrajetFirebase"
+            android:name=".TrajetDetails"
             android:exported="false" />
-        <!-- Activités de l'application -->
+
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyCV-9nuQvohvj91zyoUybKlmRZjw-ho3a8" /> <!-- Activités de l'application -->
         <activity
             android:name=".Splash"
             android:exported="true">
@@ -30,6 +33,10 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".MapsActivity"
+            android:exported="false"
+            android:label="@string/title_activity_maps" />
+        <activity
             android:name=".AllPositions"
             android:exported="false" />
         <activity
@@ -37,6 +44,9 @@
             android:exported="false" />
         <activity
             android:name=".MainActivity"
+            android:exported="false" />
+        <activity
+            android:name=".TrajetFirebase"
             android:exported="false" /> <!-- Provider de fichier -->
         <provider
             android:name="androidx.core.content.FileProvider"

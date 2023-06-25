@@ -1,6 +1,7 @@
 package com.example.projetmobilev2;
 
 import android.content.Context;
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,6 +11,8 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.firebase.ui.firestore.FirestoreRecyclerAdapter;
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
+
+import java.io.Serializable;
 
 
 public class TrajetAdapterFirebase extends FirestoreRecyclerAdapter<TrajetBase,TrajetAdapterFirebase.TrajetViewHolder> {
@@ -26,7 +29,17 @@ public class TrajetAdapterFirebase extends FirestoreRecyclerAdapter<TrajetBase,T
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                Intent intent = new Intent(context, TrajetDetails.class);
+                intent.putExtra("nom_trajet", trajetFirebase.nomTrajet);
+                intent.putExtra("listeLocalisations", (Serializable) trajetFirebase.listeLocalisations);
 
+                if (position >= 0 && position < getSnapshots().size()) {
+                    String docId = getSnapshots().getSnapshot(position).getId();
+                    intent.putExtra("docId", docId);
+                    context.startActivity(intent);
+                } else {
+                    // Gérer le cas où la position est en dehors des limites de la liste
+                }
             }
         });
     }

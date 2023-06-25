@@ -1,10 +1,15 @@
 package com.example.projetmobilev2;
 
-public class Localisation {
+import java.io.Serializable;
+import java.util.Date;
+
+import com.google.firebase.Timestamp;
+
+public class Localisation implements Serializable {
 
     private double coordX;
     private double coordY;
-    private long timestamp;
+    private Date timestamp;
 
     public Localisation(){
 
@@ -26,11 +31,12 @@ public class Localisation {
         this.coordY = coordY;
     }
 
-    public long getTimestamp() {
+    public Date getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(long timestamp) {
-        this.timestamp = timestamp;
+    public void setTimestamp(Timestamp timestamp) {
+        this.timestamp = new Date(timestamp.toDate().getTime());
     }
+
 }

@@ -34,14 +34,15 @@ import java.util.TimeZone;
 public class AllPositions extends AppCompatActivity {
 
     RecyclerView recyclerView;
-    FloatingActionButton floatingactionbutton;
-
-    FloatingActionButton firebaseBtn;
+    FloatingActionButton floatingactionbutton, visualisemap, firebaseBtn;
     TrajetAdapter adapter;
 
     MyDataBaseHelper myDB;
-
-    ArrayList<String> trajet_id, trajet_nom, trajet_lat,trajet_lon, trajet_time;
+    public static ArrayList<String> trajet_id = new ArrayList<>();
+    public static ArrayList<String> trajet_nom = new ArrayList<>();
+    public static ArrayList<String> trajet_lat = new ArrayList<>();
+    public static ArrayList<String> trajet_lon = new ArrayList<>();
+    ArrayList<String>  trajet_time;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -61,14 +62,26 @@ public class AllPositions extends AppCompatActivity {
         recyclerView.setAdapter(adapter);
         recyclerView.setLayoutManager(new LinearLayoutManager(AllPositions.this));
         floatingactionbutton = findViewById(R.id.Export);
+        visualisemap = findViewById(R.id.mapvisualie);
+
+
+
+        visualisemap.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(AllPositions.this, MapsActivity.class);
+                startActivity(intent);
+            }
+        });
+
         firebaseBtn = findViewById(R.id.firebase_btn);
 
         // on clik sur le button firebase
-
         firebaseBtn.setOnClickListener(view -> {
             Intent intent = new Intent(AllPositions.this,TrajetFirebase.class);
             startActivity(intent);
         });
+
         floatingactionbutton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -93,11 +106,11 @@ public class AllPositions extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == 1) {
+            // Permission accordée
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Permission accordée, vous pouvez procéder à l'exportation des données
                 ExportFile();
             } else {
-                // La permission a été refusée. Affichez un message à l'utilisateur ou prenez une action appropriée.
+                // La permission a été refusée.
                 Toast.makeText(this, "Permission refusée. Impossible d'exporter les données.", Toast.LENGTH_SHORT).show();
             }
         }
