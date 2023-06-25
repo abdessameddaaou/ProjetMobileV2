@@ -28,10 +28,6 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Locale;
-
 public class Chronometre extends AppCompatActivity {
 
     private FusedLocationProviderClient fusedLocationProviderClient;
@@ -129,17 +125,6 @@ public class Chronometre extends AppCompatActivity {
             fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, null);
         }
     }
-    private int getSecondsFromTimerText(String timerText) {
-        String[] timeParts = timerText.split(":");
-        if (timeParts.length == 2) {
-            int minutes = Integer.parseInt(timeParts[0].trim());
-            int seconds = Integer.parseInt(timeParts[1].trim());
-            return minutes * 60 + seconds;
-        } else {
-            // Gérer le cas où le format du temps est incorrect
-            return 0;
-        }
-    }
 
     private void scheduleLocationUpdates() {
         locationHandler.postDelayed(locationRunnable, LOCATION_UPDATE_DELAY); // Planifier la prochaine mise à jour de localisation
@@ -210,19 +195,18 @@ public class Chronometre extends AppCompatActivity {
         }
     }
 
+
     public void FinirLeTrajet() {
         chronometer.stop();
         running = false;
-        timerTxt.setText("00:00");
-        locationHandler.removeCallbacks(locationRunnable); // Arrêter la planification des mises à jour de localisation
-        fusedLocationProviderClient.removeLocationUpdates(locationCallback); // Arrêter les mises à jour de localisation
+        locationHandler.removeCallbacks(locationRunnable);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        locationHandler.removeCallbacks(locationRunnable); // Arrêter la planification des mises à jour de localisation
-        fusedLocationProviderClient.removeLocationUpdates(locationCallback); // Arrêter les mises à jour de localisation
+        // Arrêter les mises à jour de localisation différées lorsque l'activité est détruite
+        locationHandler.removeCallbacks(locationRunnable);
     }
 
     @Override
