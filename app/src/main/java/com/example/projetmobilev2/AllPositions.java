@@ -1,5 +1,6 @@
 package com.example.projetmobilev2;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -33,13 +34,18 @@ import java.util.TimeZone;
 
 public class AllPositions extends AppCompatActivity {
 
+    public static ArrayList<String> trajet_id = new ArrayList<>();
+    public static ArrayList<String> trajet_nom = new ArrayList<>();
+    public static ArrayList<String> trajet_lat = new ArrayList<>();
+    public static ArrayList<String> trajet_lon = new ArrayList<>();
     RecyclerView recyclerView;
-    FloatingActionButton floatingactionbutton;
+    FloatingActionButton floatingactionbutton, visualisemap;
     TrajetAdapter adapter;
 
     MyDataBaseHelper myDB;
 
-    ArrayList<String> trajet_id, trajet_nom, trajet_lat,trajet_lon, trajet_time;
+    ArrayList<String>  trajet_time;
+    @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -59,6 +65,17 @@ public class AllPositions extends AppCompatActivity {
         recyclerView.setAdapter(adapter);
         recyclerView.setLayoutManager(new LinearLayoutManager(AllPositions.this));
         floatingactionbutton = findViewById(R.id.Export);
+        visualisemap = findViewById(R.id.mapvisualie);
+
+
+
+        visualisemap.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(AllPositions.this, MapsActivity.class);
+                startActivity(intent);
+            }
+        });
 
         floatingactionbutton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -194,8 +211,7 @@ public class AllPositions extends AppCompatActivity {
         }
         else
         {
-            while (cursor.moveToNext())
-            {
+            while (cursor.moveToNext()) {
                 trajet_id.add(cursor.getString(0));
                 trajet_nom.add(cursor.getString(1));
                 trajet_lat.add(cursor.getString(2));
