@@ -3,6 +3,7 @@ package com.example.projetmobilev2;
 import androidx.fragment.app.FragmentActivity;
 
 import android.os.Bundle;
+import android.util.Log;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -12,7 +13,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.example.projetmobilev2.databinding.ActivityMapsBinding;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleMap.OnCameraIdleListener {
 
     private GoogleMap mMap;
     private ActivityMapsBinding binding;
@@ -43,6 +44,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
+        mMap.setOnCameraIdleListener(this);
+
+        // Activer les contrôles de zoom
+        mMap.getUiSettings().setZoomControlsEnabled(true);
+
         // Ajouter des marqueurs à la carte pour chaque position
         for (int i = 0; i < AllPositions.trajet_id.size(); i++) {
             double lat = Double.parseDouble(AllPositions.trajet_lat.get(i));
@@ -62,4 +68,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    @Override
+    public void onCameraIdle() {
+        // Récupérer le niveau de zoom actuel
+        float zoomLevel = mMap.getCameraPosition().zoom;
+
+        // Faites quelque chose avec le niveau de zoom (par exemple, affichez-le dans la console de débogage)
+        Log.d("MapsActivity", "Niveau de zoom : " + zoomLevel);
+    }
 }
